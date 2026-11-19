@@ -2642,13 +2642,6 @@ class CodeResponse(LoncapaResponse):
             "grader_payload": grader_payload,
         }
 
-        # matlab api key can be defined in course settings. if so, add it to the grader payload
-        api_key = getattr(self.capa_system, "matlab_api_key", None)
-        if api_key and self.xml.find("matlabinput") is not None:
-            self.payload["token"] = api_key
-            self.payload["endpoint_version"] = "2"
-            self.payload["requestor_id"] = self.capa_system.anonymous_student_id
-
         self.initial_display = find_with_default(codeparam, "initial_display", "")
         _ = self.capa_system.i18n.gettext
         self.answer = find_with_default(codeparam, "answer_display", _("No answer provided."))
