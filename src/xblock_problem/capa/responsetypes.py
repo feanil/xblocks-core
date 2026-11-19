@@ -2578,15 +2578,13 @@ ScoreMessage = namedtuple("ScoreMessage", ["valid", "correct", "points", "msg"])
 @registry.register
 class CodeResponse(LoncapaResponse):
     """
-    Grade student code using an external queueing server, called 'xqueue'.
+    Grade student code with an external grader that pulls submissions from the LMS.
 
-    Expects 'xqueue' dict in LoncapaSystem with the following properties that are
+    Expects 'xqueue' object in LoncapaSystem with the following properties that are
     needed by CodeResponse::
 
         capa_system.xqueue = object with properties:
             interface: XQueueInterface object.
-            construct_callback: Per-StudentModule callback URL constructor,
-                defaults to using 'score_update' as the correct dispatch (function).
             default_queuename: Default queue name to submit request (string).
         }
 
@@ -2676,8 +2674,7 @@ class CodeResponse(LoncapaResponse):
 
         # Generate header
         queuekey = make_hashkey(str(self.capa_system.seed) + qtime + anonymous_student_id + self.answer_id)
-        callback_url = self.capa_system.xqueue.construct_callback()
-        xheader = make_xheader(lms_callback_url=callback_url, lms_key=queuekey, queue_name=self.queue_name)
+        xheader = make_xheader(lms_key=queuekey, queue_name=self.queue_name)
 
         # Generate body
         if is_list_of_files(submission):
