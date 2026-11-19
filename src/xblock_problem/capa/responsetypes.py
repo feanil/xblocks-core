@@ -2643,13 +2643,6 @@ class CodeResponse(LoncapaResponse):
             "grader_payload": grader_payload,
         }
 
-        # matlab api key can be defined in course settings. if so, add it to the grader payload
-        api_key = getattr(self.capa_system, "matlab_api_key", None)
-        if api_key and self.xml.find("matlabinput") is not None:
-            self.payload["token"] = api_key
-            self.payload["endpoint_version"] = "2"
-            self.payload["requestor_id"] = self.capa_system.anonymous_student_id
-
         self.initial_display = find_with_default(codeparam, "initial_display", "")
         _ = self.capa_system.i18n.gettext
         self.answer = find_with_default(codeparam, "answer_display", _("No answer provided."))
@@ -2667,6 +2660,14 @@ class CodeResponse(LoncapaResponse):
                 convert_files_to_filenames(student_answers),
             )
             raise Exception(err) from err  # pylint: disable=broad-exception-raised
+
+        # MATLAB problems sent code to the MathWorks service through XQueue, and neither
+        # exists any more (https://github.com/openedx/public-engineering/issues/192). The
+        # tag stays so old problems parse and keep their scores, but a new submission has
+        # no grader to go to, so tell the learner instead of queueing it. Raising keeps
+        # the attempt from being counted.
+        if self.inputfields[0].tag == "matlabinput":
+            raise ResponseError(_("MATLAB problems can no longer be graded."))
 
         # We do not support xqueue within Studio.
         if self.capa_system.xqueue is None:

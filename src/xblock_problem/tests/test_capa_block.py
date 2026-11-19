@@ -1370,6 +1370,32 @@ class ProblemBlockTest(unittest.TestCase):
         for fpath, fileobj in kwargs["files"].items():
             assert fpath == fileobj.name
 
+    @pytest.mark.django_db
+    @patch.object(XQueueInterfaceSubmission, "send_to_submission")
+    def test_submit_problem_matlabinput_is_refused(self, mock_xqueue_post):
+        """
+        A legacy <matlabinput> problem still loads, but a submission to it is refused
+        without queueing anything or using an attempt: there is no MATLAB grader any more.
+        """
+        xml = textwrap.dedent("""\
+            <problem>
+                <coderesponse queuename="matlab">
+                    <matlabinput rows="10" cols="80"/>
+                    <codeparam>
+                        <grader_payload>{"grader": "f.py"}</grader_payload>
+                    </codeparam>
+                </coderesponse>
+            </problem>
+        """)
+        block = CapaFactory.create(xml=xml, max_attempts=1)
+
+        result = block.submit_problem({CapaFactory.input_key(): "disp('hi')"})
+
+        assert "MATLAB problems can no longer be graded" in result["success"]
+        assert block.attempts == 0
+        assert not block.closed()
+        mock_xqueue_post.assert_not_called()
+
     def test_submit_problem_error(self):
         """Ensure expected grading errors return messages without incrementing attempts."""
 
